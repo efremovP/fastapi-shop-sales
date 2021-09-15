@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "shop-sales"
+version = "0.1.0"
+description = ""
+authors = ["Peter Efremov <peter.efremov@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.68.1"
+uvicorn = "^0.15.0"
+SQLAlchemy = "^1.4.23"
+dynaconf = "^3.1.7"
+alembic = "^1.7.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

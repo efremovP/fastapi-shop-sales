@@ -1,18 +1,11 @@
-from fastapi import Body
 from fastapi import FastAPI
-from fastapi import Response
+from fastapi.staticfiles import StaticFiles
 
-from .models import GreetFrom
+from .accounts import api as account_api
+from .config import settings
+
 
 app = FastAPI()
+app.mount(settings.static_url, StaticFiles(directory=settings.static_directory), name='static')
 
-
-#from JSON
-@app.post('/post')
-def get_form(form: GreetFrom):
-    return Response(f'Get from post {form.name}!')
-
-
-@app.get('/hallo')
-def root(name: str = None):
-    return 'Hello, '+ str(name)
+account_api.initialize_app(app)

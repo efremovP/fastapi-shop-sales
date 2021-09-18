@@ -1,70 +1,82 @@
 from typing import List
-from typing import Optional
 
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import File
 from fastapi import UploadFile
-from fastapi import Form
-from fastapi import Response
+from fastapi import HTTPException
+from fastapi import status
 
 from .schemas import Account as AccountSchema
 from .schemas import AccountCreate
 from .schemas import AccountUpdate
 from .services import AccountService
+from ..exceptions import EntityConflictError
+from ..exceptions import EntityDoesNotExistError
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/accounts'
+)
 
 def initialize_app(app: FastAPI):
     app.include_router(router)
 
 
-@router.post('/create-account')
+@router.post(
+    '',
+    response_model=AccountSchema,
+    status_code=status.HTTP_201_CREATED
+)
 def create_account(
-        email: str = Form(...),
-        username: str = Form(...),
-        password: str = Form(...),
-        service: AccountService=Depends()
+        account_create: AccountCreate,
+        service: AccountService = Depends()
 ):
-    service.create_account(
-        AccountCreate(
-            email=email,
-            username=username,
-            password=password
-        )
-    )
-
-    return Response()
+    try:
+        account = service.create_account(account_create)
+        return account
+    except EntityConflictError:
+        raise HTTPException(status.HTTP_409_CONFLICT) from None
 
 
-@router.get('/get-accounts', response_model=List[AccountSchema])
+@router.get('', response_model=List[AccountSchema])
 def get_accounts(
     service: AccountService=Depends()
     ):
     return service.get_accounts()
 
-@router.get('/get-account/{account_id}', response_model=AccountSchema)
+@router.get('/{account_id}', response_model=AccountSchema)
 def get_account(
         account_id: int,
         service: AccountService=Depends()
 ):
-    return service.get_account(account_id)
+    try:
+        return service.get_account(account_id)
+    except EntityDoesNotExistError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND) from None
 
-@router.patch('/edit-account/{account_id}')
+
+@router.patch('/{account_id}', response_model=AccountSchema)
 def edit_account(
         account_id: int,
-        first_name: Optional[str] = Form(None),
-        last_name: Optional[str] = Form(None),
-        avatar: Optional[UploadFile] = File(None),
-        service: AccountService=Depends()
+        account_update: AccountUpdate,
+        service: AccountService = Depends()
 ):
-    service.update_account(
-        account_id,
-        AccountUpdate(
-            first_name=first_name,
-            last_name=last_name,
-            avatar=avatar
-        )
-    )
-    return Response()
+    try:
+        account = service.update_account(account_id, account_update)
+        return account
+    except EntityDoesNotExistError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND) from None
+
+
+@router.put('/{account_id}/avatar')
+def update_account_avatar(
+        account_id: int,
+        avatar: UploadFile = File(...),
+        service: AccountService = Depends()
+):
+    try:
+        account = service.update_account_avatar(account_id, avatar)
+        return account
+    except EntityDoesNotExistError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND) from None

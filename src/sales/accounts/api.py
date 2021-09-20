@@ -7,11 +7,18 @@ from fastapi import File
 from fastapi import UploadFile
 from fastapi import HTTPException
 from fastapi import status
+from fastapi.security import OAuth2PasswordRequestForm
 
+from .schemas import AccountLogin
 from .schemas import Account as AccountSchema
 from .schemas import AccountCreate
 from .schemas import AccountUpdate
+from .schemas import RefreshToken
+from .schemas import Token
 from .services import AccountService
+from ..auth import Account
+from ..auth import create_token
+from ..auth import get_current_account
 from ..exceptions import EntityConflictError
 from ..exceptions import EntityDoesNotExistError
 
@@ -21,6 +28,31 @@ router = APIRouter(
 
 def initialize_app(app: FastAPI):
     app.include_router(router)
+
+
+@router.post('/login', response_model=Token)
+def login(
+    credentials: OAuth2PasswordRequestForm = Depends(),
+    service: AccountService = Depends()
+):
+    account_login = AccountLogin(
+        username=credentials.username,
+        password=credentials.password,
+    )
+    account = service.authenticate_account(account_login)
+    return service.create_tokens(account)
+
+@router.post('/refresh-token', response_model=Token)
+def refresh_token(
+    old_token: RefreshToken,
+    service: AccountService = Depends()
+):
+    try:
+        account = service.get_account_by_refresh_token(old_token.token)
+    except EntityDoesNotExistError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+
+    return service.create_tokens(account)
 
 
 @router.post(
@@ -41,8 +73,9 @@ def create_account(
 
 @router.get('', response_model=List[AccountSchema])
 def get_accounts(
+    current_account: Account = Depends(get_current_account),
     service: AccountService=Depends()
-    ):
+):
     return service.get_accounts()
 
 @router.get('/{account_id}', response_model=AccountSchema)

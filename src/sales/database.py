@@ -26,3 +26,4 @@ def get_session():
         yield session
 
 from .accounts.models import Account #noqa
+from .shops.models import Shop #noqa

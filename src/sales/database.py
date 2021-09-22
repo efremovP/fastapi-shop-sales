@@ -27,3 +27,4 @@ def get_session():
 
 from .accounts.models import Account #noqa
 from .shops.models import Shop #noqa
+from .categories.models import Category #noqa

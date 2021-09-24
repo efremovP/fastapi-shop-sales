@@ -19,7 +19,6 @@ from ..database import get_session
 from .models import Account
 from .models import RefreshToken
 from .schemas import AccountCreate
-from .schemas import AccountUpdate
 from .schemas import AccountLogin
 from .schemas import Token
 from ..auth import create_token
@@ -29,7 +28,7 @@ class AccountService():
         self.session = session
         self.settings = settings
 
-    def create_account(self, account_create: AccountCreate):
+    def create_account(self, account_create: AccountCreate) -> Account:
         account = Account(
             email=account_create.email,
             username=account_create.username,
@@ -38,11 +37,10 @@ class AccountService():
         self.session.add(account)
         try:
             self.session.commit()
+
             return account
         except IntegrityError:
             raise EntityConflictError from None
-
-        return Response(pbkdf2_sha256.hash(password))
 
     def authenticate_account(self, account_login: AccountLogin) -> Account:
         try:
@@ -88,9 +86,6 @@ class AccountService():
 
         return accounts
 
-    def get_account(self, account_id: int) -> Account:
-        return self._get_account(account_id)
-
     def get_account_by_username(self, username: str) -> Account:
         try:
             account = self.session.execute(
@@ -107,37 +102,6 @@ class AccountService():
                 select(Account)
                 .join_from(Account, RefreshToken)
                 .where(RefreshToken.token == token)
-            ).scalar_one()
-            return account
-        except NoResultFound:
-            raise EntityDoesNotExistError from None
-
-    def update_account(self, account_id: int, account_update: AccountUpdate):
-        account = self._get_account(account_id)
-
-        for k in account_update.dict(exclude_unset=True):
-            setattr(account, k, account_update.dict(exclude_unset=True)[k])
-
-        self.session.commit()
-        return account
-
-    def update_account_avatar(self, account_id: int, avatar: UploadFile):
-        account = self._get_account(account_id)
-
-        filepath = PROJECT_ROOT / self.settings.static_directory / avatar.filename
-        with filepath.open(mode='wb') as f:
-            shutil.copyfileobj(avatar.file, f)
-        fileurl = f'{self.settings.static_url}/{avatar.filename}'
-        account.avatar = fileurl
-
-        self.session.commit()
-        return account
-
-    def _get_account(self, account_id: int) -> Account:
-        try:
-            account = self.session.execute(
-                select(Account)
-                .where(Account.id == account_id)
             ).scalar_one()
             return account
         except NoResultFound:

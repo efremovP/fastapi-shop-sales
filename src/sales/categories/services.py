@@ -24,33 +24,37 @@ class CategoryService():
         ).scalars().all()
         return categories
 
-    def create_category(self, category_create: CreateCategory) -> Category:
+    def create_category(self, category_create: CreateCategory, account_id: int) -> Category:
         category = Category(
             name=category_create.name,
-            account_id=1
+            account_id=account_id
         )
         self.session.add(category)
         self.session.commit()
 
         return category
 
-    def update_category(self, category_id: int, category_update: UpdateCategory) -> Category:
-        category = self._get_category(category_id, 1)
+    def update_category(self, category_id: int, category_update: UpdateCategory, account_id: int) -> Category:
+        category = self._get_category(category_id, account_id)
         category.name = category_update.name
         self.session.commit()
 
         return category
 
-    def delete_category(self, category_id: int):
-        category = self._get_category(category_id, 1)
+    def delete_category(self, category_id: int, account_id: int):
+        category = self._get_category(category_id, account_id)
         self.session.delete(category)
         self.session.commit()
+
+    def get_category(self, category_id: int, account_id: int) -> Category:
+        category = self._get_category(category_id, account_id)
+        return category
 
     def _get_category(self, category_id: int, account_id: int) -> Category:
         try:
             category = self.session.execute(
                 select(Category)
-                    .where(Category.id == category_id, Category.account_id == account_id)
+                .where(Category.id == category_id, Category.account_id == account_id)
             ).scalar_one()
             return category
         except NoResultFound:

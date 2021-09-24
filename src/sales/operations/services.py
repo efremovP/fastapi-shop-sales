@@ -10,6 +10,7 @@ from ..database import get_session
 from .models import Operation
 from .schemas import OperationCreate
 from .schemas import OperationGetParams
+from ..shops.services import ShopService
 
 
 class OperationService():
@@ -24,9 +25,9 @@ class OperationService():
         ).scalars().all()
         return operations
 
-    def create_operation(self, operation_create: OperationCreate):
+    def create_operation(self, operation_create: OperationCreate, account_id: int):
         operation = Operation(
-            account_id=1
+            account_id=account_id
         )
 
         for k in operation_create.dict():
@@ -38,22 +39,33 @@ class OperationService():
             self.session.commit()
             return operation
         except IntegrityError:
-            raise EntityConflictError from None
+            raise EntityConflictError() from None
 
-    def get_operations(self, get_params: OperationGetParams) -> List[Operation]:
-        operations = self._get_operations(get_params)
+    def chack_operation_param(
+            self,
+            operation_create: OperationCreate,
+            account_id: int,
+            shop_service: ShopService = Depends()
+    ):
+        try:
+            shop_service.get_shop(operation_create.shop_id, account_id)
+        except IntegrityError:
+            raise EntityConflictError() from None
+
+    def get_operations(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
+        operations = self._get_operations(get_params,  account_id)
 
         return operations
 
-    def get_report(self, get_params: OperationGetParams) -> List[Operation]:
-        operations = self._get_operations(get_params)
+    def get_report(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
+        operations = self._get_operations(get_params, account_id)
 
 
 
         return operations
 
-    def _get_operations(self, get_params: OperationGetParams) -> List[Operation]:
-        query = select(Operation)
+    def _get_operations(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
+        query = select(Operation).where(Operation.account_id == account_id)
 
         if get_params.date_from:
             query = query.where(Operation.date >= get_params.date_from)

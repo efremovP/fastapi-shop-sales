@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from .config import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/accounts/login')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/signin')
 
 class Account(BaseModel):
     id: int

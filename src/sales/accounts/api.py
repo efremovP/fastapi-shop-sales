@@ -3,8 +3,6 @@ from typing import List
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import FastAPI
-from fastapi import File
-from fastapi import UploadFile
 from fastapi import HTTPException
 from fastapi import status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -12,7 +10,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from .schemas import AccountLogin
 from .schemas import Account as AccountSchema
 from .schemas import AccountCreate
-from .schemas import AccountUpdate
 from .schemas import RefreshToken
 from .schemas import Token
 from .services import AccountService
@@ -23,41 +20,35 @@ from ..exceptions import EntityConflictError
 from ..exceptions import EntityDoesNotExistError
 
 router = APIRouter(
-    prefix='/accounts'
+    prefix='/sign'
 )
+
 
 def initialize_app(app: FastAPI):
     app.include_router(router)
 
 
-@router.post('/login', response_model=Token)
+@router.post('in', response_model=Token)
 def login(
-    credentials: OAuth2PasswordRequestForm = Depends(),
-    service: AccountService = Depends()
-):
-    account_login = AccountLogin(
-        username=credentials.username,
-        password=credentials.password,
-    )
-    account = service.authenticate_account(account_login)
-    return service.create_tokens(account)
-
-@router.post('/refresh-token', response_model=Token)
-def refresh_token(
-    old_token: RefreshToken,
-    service: AccountService = Depends()
+        credentials: OAuth2PasswordRequestForm = Depends(),
+        service: AccountService = Depends()
 ):
     try:
-        account = service.get_account_by_refresh_token(old_token.token)
+        account_login = AccountLogin(
+            username=credentials.username,
+            password=credentials.password,
+        )
+
+        account = service.authenticate_account(account_login)
     except EntityDoesNotExistError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED) from None
 
     return service.create_tokens(account)
 
 
 @router.post(
-    '',
-    response_model=AccountSchema,
+    'up',
+    response_model=Token,
     status_code=status.HTTP_201_CREATED
 )
 def create_account(
@@ -66,50 +57,15 @@ def create_account(
 ):
     try:
         account = service.create_account(account_create)
-        return account
     except EntityConflictError:
         raise HTTPException(status.HTTP_409_CONFLICT) from None
 
+    return service.create_tokens(account)
 
+
+# TODO тестовая функция
 @router.get('', response_model=List[AccountSchema])
 def get_accounts(
-    current_account: Account = Depends(get_current_account),
-    service: AccountService=Depends()
+        service: AccountService = Depends()
 ):
     return service.get_accounts()
-
-@router.get('/{account_id}', response_model=AccountSchema)
-def get_account(
-        account_id: int,
-        service: AccountService=Depends()
-):
-    try:
-        return service.get_account(account_id)
-    except EntityDoesNotExistError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND) from None
-
-
-@router.patch('/{account_id}', response_model=AccountSchema)
-def edit_account(
-        account_id: int,
-        account_update: AccountUpdate,
-        service: AccountService = Depends()
-):
-    try:
-        account = service.update_account(account_id, account_update)
-        return account
-    except EntityDoesNotExistError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND) from None
-
-
-@router.put('/{account_id}/avatar')
-def update_account_avatar(
-        account_id: int,
-        avatar: UploadFile = File(...),
-        service: AccountService = Depends()
-):
-    try:
-        account = service.update_account_avatar(account_id, avatar)
-        return account
-    except EntityDoesNotExistError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND) from None

@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey
 
 from ..database import Base
 
+
 class Shop(Base):
     __tablename__ = 'shops'
 

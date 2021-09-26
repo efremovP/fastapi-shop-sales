@@ -10,12 +10,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from .schemas import AccountLogin
 from .schemas import Account as AccountSchema
 from .schemas import AccountCreate
-from .schemas import RefreshToken
 from .schemas import Token
 from .services import AccountService
-from ..auth import Account
-from ..auth import create_token
-from ..auth import get_current_account
 from ..exceptions import EntityConflictError
 from ..exceptions import EntityDoesNotExistError
 

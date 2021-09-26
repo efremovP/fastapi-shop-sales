@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import FastAPI
@@ -8,7 +6,6 @@ from fastapi import status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from .schemas import AccountLogin
-from .schemas import Account as AccountSchema
 from .schemas import AccountCreate
 from .schemas import Token
 from .services import AccountService
@@ -57,11 +54,3 @@ def create_account(
         raise HTTPException(status.HTTP_409_CONFLICT) from None
 
     return service.create_tokens(account)
-
-
-# TODO тестовая функция
-@router.get('', response_model=List[AccountSchema])
-def get_accounts(
-        service: AccountService = Depends()
-):
-    return service.get_accounts()

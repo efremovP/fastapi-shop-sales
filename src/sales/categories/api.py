@@ -23,12 +23,6 @@ def initialize_app(app: FastAPI):
     app.include_router(router)
 
 
-@router.get('', response_model=List[CategorySchema])
-def get_categories(category_service: CategoryService = Depends()):
-    categories = category_service.get_categories()
-    return categories
-
-
 @router.post(
     '',
     response_model=CategorySchema,

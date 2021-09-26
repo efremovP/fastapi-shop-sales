@@ -24,15 +24,6 @@ def initialize_app(app: FastAPI):
     app.include_router(router)
 
 
-# TODO тестовая функция удалить!!!
-@router.get('')
-def get_shops(
-        shop_service: ShopService = Depends()
-):
-    shops = shop_service.get_shops()
-    return shops
-
-
 @router.post(
     '',
     response_model=ShopSchema,

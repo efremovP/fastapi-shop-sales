@@ -58,11 +58,3 @@ class AccountService():
             access_token=access_token,
             token_type='bearer'
         )
-
-    # TODO удалить
-    def get_accounts(self) -> List[Account]:
-        accounts = self.session.execute(
-            select(Account)
-        ).scalars().all()
-
-        return accounts

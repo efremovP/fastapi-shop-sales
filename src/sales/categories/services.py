@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
@@ -16,13 +14,6 @@ class CategoryService():
     def __init__(self, session=Depends(get_session), settings=Depends(get_settings)):
         self.session = session
         self.settings = settings
-
-    # TODO только для тестов, удалить после тустирвания
-    def get_categories(self) -> List[Category]:
-        categories = self.session.execute(
-            select(Category)
-        ).scalars().all()
-        return categories
 
     def create_category(self, category_create: CreateCategory, account_id: int) -> Category:
         category = Category(

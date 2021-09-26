@@ -27,15 +27,6 @@ def initialize_app(app: FastAPI):
     app.include_router(router)
 
 
-# TODO тестовая функция
-@router.get('/all')
-def get_all_operations(
-        operation_service: OperationService = Depends()
-):
-    operations = operation_service.get_all_operations()
-    return operations
-
-
 @router.post(
     '',
     response_model=OperationSchema,

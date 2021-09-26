@@ -17,13 +17,6 @@ class ShopService():
         self.session = session
         self.settings = settings
 
-    # TODO удалить после тестов!!!
-    def get_shops(self) -> List[Shop]:
-        shops = self.session.execute(
-            select(Shop)
-        ).scalars().all()
-        return shops
-
     def create_shop(self, shop_create: ShopCreate, account_id: int) -> Shop:
         shop = Shop(
             name=shop_create.name,
@@ -54,7 +47,7 @@ class ShopService():
         try:
             shop = self.session.execute(
                 select(Shop)
-                .where(Shop.id == shop_id, Shop.account_id == account_id)
+                    .where(Shop.id == shop_id, Shop.account_id == account_id)
             ).scalar_one()
             return shop
         except NoResultFound:

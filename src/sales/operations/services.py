@@ -21,13 +21,6 @@ class OperationService():
         self.session = session
         self.settings = settings
 
-    # TODO только для тестов, удалить после тустирвания
-    def get_all_operations(self) -> List[Operation]:
-        operations = self.session.execute(
-            select(Operation)
-        ).scalars().all()
-        return operations
-
     def create_operation(self, operation_create: OperationCreate, account_id: int):
         operation = Operation(
             account_id=account_id
@@ -57,8 +50,8 @@ class OperationService():
 
     def get_operations(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
         query = select(Operation)
-
         query = self._get_where_by_params(get_params, account_id, query)
+
 
         operations = self.session.execute(
             query
@@ -66,7 +59,7 @@ class OperationService():
 
         return operations
 
-    def get_report(self, get_params: OperationGetParams, account_id: int): # -> List[Operation]
+    def get_report(self, get_params: OperationGetParams, account_id: int):
         query = select(
             Operation.type,
             Operation.date,
@@ -78,7 +71,6 @@ class OperationService():
         )
         query = query.join(Shop)
         query = query.outerjoin(Category)
-        query = query.where(Operation.account_id == account_id)
         query = query.execution_options(yield_per=100)
         query = self._get_where_by_params(get_params, account_id, query)
 
@@ -86,12 +78,11 @@ class OperationService():
         for partition in self.session.execute(query).partitions(100):
             for row in partition:
                 report.add_row(row)
-                # print(f"{row.type} - {row.date} - {row.shop} - {row.category} - {row.name} - {row.price} - {row.amount}")
 
         return report.get_result()
 
     def _get_where_by_params(self, get_params: OperationGetParams, account_id: int, query):
-        query.where(Operation.account_id == account_id)
+        query = query.where(Operation.account_id == account_id)
 
         if get_params.date_from:
             query = query.where(Operation.date >= get_params.date_from)

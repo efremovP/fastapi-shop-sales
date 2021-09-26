@@ -8,9 +8,12 @@ from ..config import get_settings
 from ..exceptions import EntityConflictError
 from ..database import get_session
 from .models import Operation
+from ..shops.models import Shop
+from ..categories.models import Category
 from .schemas import OperationCreate
 from .schemas import OperationGetParams
 from ..shops.services import ShopService
+from .report_service import Report
 
 
 class OperationService():
@@ -53,19 +56,42 @@ class OperationService():
             raise EntityConflictError() from None
 
     def get_operations(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
-        operations = self._get_operations(get_params,  account_id)
+        query = select(Operation)
+
+        query = self._get_where_by_params(get_params, account_id, query)
+
+        operations = self.session.execute(
+            query
+        ).scalars().all()
 
         return operations
 
-    def get_report(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
-        operations = self._get_operations(get_params, account_id)
+    def get_report(self, get_params: OperationGetParams, account_id: int): # -> List[Operation]
+        query = select(
+            Operation.type,
+            Operation.date,
+            Shop.name.label("shop"),
+            Category.name.label("category"),
+            Operation.name,
+            Operation.price,
+            Operation.amount
+        )
+        query = query.join(Shop)
+        query = query.outerjoin(Category)
+        query = query.where(Operation.account_id == account_id)
+        query = query.execution_options(yield_per=100)
+        query = self._get_where_by_params(get_params, account_id, query)
 
+        report = Report()
+        for partition in self.session.execute(query).partitions(100):
+            for row in partition:
+                report.add_row(row)
+                # print(f"{row.type} - {row.date} - {row.shop} - {row.category} - {row.name} - {row.price} - {row.amount}")
 
+        return report.get_result()
 
-        return operations
-
-    def _get_operations(self, get_params: OperationGetParams, account_id: int) -> List[Operation]:
-        query = select(Operation).where(Operation.account_id == account_id)
+    def _get_where_by_params(self, get_params: OperationGetParams, account_id: int, query):
+        query.where(Operation.account_id == account_id)
 
         if get_params.date_from:
             query = query.where(Operation.date >= get_params.date_from)
@@ -81,8 +107,4 @@ class OperationService():
             category_ids = get_params.categories.split(',')
             query = query.where(Operation.category_id.in_(category_ids))
 
-        operations = self.session.execute(
-            query
-        ).scalars().all()
-        return operations
-
+        return query

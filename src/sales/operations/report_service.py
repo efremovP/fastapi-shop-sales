@@ -1,6 +1,4 @@
-from typing import List
 from datetime import date
-from .models import TypeOperationEnum
 
 report_config = {
 	'empty_category_name': 'Без категории',
@@ -21,29 +19,7 @@ class Report():
 
 		return result
 
-	def _make_view_format(self, view_report_data):
-		for type in self._report_data:
-			self._report_data[type]['amounts'] = list(self._report_data[type]['amounts'].values())
-			self._report_data[type]['children'] = self._iter_result_dict(self._report_data[type]['children'])
-			view_report_data = view_report_data | {type: self._report_data[type]}
-
-		return view_report_data
-
-	def _iter_result_dict(self, values):
-		res_values = list()
-		for value in values:
-			local_values = values[value]
-			local_values['amounts'] = list(local_values['amounts'].values())
-			if 'children' in local_values:
-				local_values['children'] = self._iter_result_dict(local_values['children'])
-
-			res_values.append(local_values)
-
-		return res_values
-
-
-
-	def add_row(self, row: dict) -> None:
+	def add_row(self, row: dict):
 
 		category = row['category'] or report_config['empty_category_name']
 
@@ -51,9 +27,11 @@ class Report():
 
 		self._add_new_element(row['type'], row['shop'], category, row['name'], row_date)
 
-		self._add_revenue_to_element(row['type'], row['shop'], category, row['name'], row_date, row['amount'])
+		amount = row['amount'] * row['price']
 
-	def _add_new_element(self, type: str, shop: str, category: str, name: str,  column_date: str) -> None:
+		self._add_revenue_to_element(row['type'], row['shop'], category, row['name'], row_date, amount)
+
+	def _add_new_element(self, type: str, shop: str, category: str, name: str,  column_date: str):
 
 		if not type in self._report_data:
 			self._report_data[type] = {'name': report_config[type.value], 'amounts': {}, 'total_amount': 0, 'children': {}}
@@ -79,8 +57,7 @@ class Report():
 		if not column_date in self._report_data[type]['children'][shop]['children'][category]['children'][name]['amounts']:
 			self._report_data[type]['children'][shop]['children'][category]['children'][name]['amounts'][column_date] = 0
 
-	def _add_revenue_to_element(self, type: str, shop: str, category: str, name: str, column_date: str, amount: float) -> None:
-
+	def _add_revenue_to_element(self, type: str, shop: str, category: str, name: str, column_date: str, amount: float):
 		self._report_data[type]['total_amount'] += amount
 		self._report_data[type]['amounts'][column_date] += amount
 
@@ -95,10 +72,26 @@ class Report():
 		self._report_data[type]['children'][shop]['children'][category]['children'][name]['total_amount'] += amount
 		self._report_data[type]['children'][shop]['children'][category]['children'][name]['amounts'][column_date] += amount
 
-	def _add_date_to_header_column_list(self, column_date: str) -> None:
+	def _add_date_to_header_column_list(self, column_date: str):
 		if not column_date in self.header_column_list:
 			self.header_column_list.append(column_date)
 
+	def _make_view_format(self, view_report_data):
+		for type in self._report_data:
+			self._report_data[type]['amounts'] = list(self._report_data[type]['amounts'].values())
+			self._report_data[type]['children'] = self._iter_result_dict(self._report_data[type]['children'])
+			view_report_data = view_report_data | {type: self._report_data[type]}
 
-def main():
-	header_column_list, report_data = Report().get_from_file()
+		return view_report_data
+
+	def _iter_result_dict(self, values):
+		result_values = list()
+		for value in values:
+			local_values = values[value]
+			local_values['amounts'] = list(local_values['amounts'].values())
+			if 'children' in local_values:
+				local_values['children'] = self._iter_result_dict(local_values['children'])
+
+			result_values.append(local_values)
+
+		return result_values

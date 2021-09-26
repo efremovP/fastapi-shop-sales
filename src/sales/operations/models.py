@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import Column
+from sqlalchemy import text
 from sqlalchemy import String
 from sqlalchemy import Integer
 from sqlalchemy import Float
@@ -26,7 +27,5 @@ class Operation(Base):
     shop_id = Column(ForeignKey('shops.id', ondelete='CASCADE'), nullable=False)
     category_id = Column(ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
     name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
-    amount = Column(Float, nullable=False)
-    # price = Column(DECIMAL(precision=10, scale=2, asdecimal=True), nullable=False)
-    # amount = Column(DECIMAL(precision=10, scale=3, asdecimal=True), nullable=False)
+    price = Column(DECIMAL(precision=10, scale=2, asdecimal=True), nullable=False, server_default=text('0'))
+    amount = Column(DECIMAL(precision=10, scale=2, asdecimal=True), nullable=False, server_default=text('0'))
